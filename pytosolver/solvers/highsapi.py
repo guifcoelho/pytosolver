@@ -17,18 +17,23 @@ class HighsApi(AbstractSolverApi):
     _hotstart_solution: list[float] | None = field(default=None, init=False, repr=False)
 
     @property
-    def show_log(self) -> bool:
+    def should_show_log(self) -> bool:
         if self.model is None:
             raise ValueError("The solver model was not set.")
-        return bool(self.get_option('output_flag'))
+
+        output_flag = self.get_option('output_flag')[1]
+        log_to_console = self.get_option('log_to_console')[1]
+
+        return output_flag and log_to_console
+
+    def set_log(self, flag: bool) -> "HighsApi":
+        for option in ['output_flag', 'log_to_console']:
+            self.set_option(option, flag)
+        return self
 
     def init_model(self) -> "HighsApi":
         self.model = highspy.Highs()
-        self._set_log(False)
-        return self
-
-    def _set_log(self, flag: bool) -> "HighsApi":
-        self.set_option('output_flag', 'true' if flag else 'false')
+        self.set_log(False)
         return self
 
     def get_version(self) -> str:
@@ -198,7 +203,7 @@ class HighsApi(AbstractSolverApi):
         # complete solution (if feasible) to add later into the model.
         # See https://github.com/ERGO-Code/HiGHS/discussions/1401.
 
-        current_show_log = self.show_log
+        current_show_log = self.should_show_log
         self._hotstart_solution = None
         num_vars = self.get_num_columns()
 
@@ -214,13 +219,13 @@ class HighsApi(AbstractSolverApi):
         self.set_objective(0)
         self.model.changeColsBounds(len(columns), columns, values, values)
         self.set_option('mip_rel_gap', highspy.kHighsInf)
-        self._set_log(False)
+        self.set_log(False)
 
         self.model.run()
         self.fetch_solve_status()
 
         self.set_option('mip_rel_gap', 0)
-        self._set_log(current_show_log)
+        self.set_log(current_show_log)
         self.model.changeColsBounds(num_vars, list(range(num_vars)), lbs, ubs)
         self.model.changeColsCost(num_vars, list(range(num_vars)), costs)
 
@@ -230,10 +235,10 @@ class HighsApi(AbstractSolverApi):
         return self
 
     def run(self, options: Optional[dict[str, Any]] = None) -> "HighsApi":
-        self._set_log(True)
+        self.set_log(True)
         self.set_options(options or dict())
 
-        if self.show_log:
+        if self.should_show_log:
             print(f"Solver: {self.solver_name} {self.get_version()}")
 
         if self._hotstart_solution is not None:
@@ -310,6 +315,6 @@ class HighsApi(AbstractSolverApi):
         constraints and objective function from the model.
         It does not handle multiple objectives.
         """
-        prob = HighsApi()._set_log(False)
+        prob = HighsApi().set_log(False)
         prob.model.readModel(path)
         return prob.pull_from_model()
