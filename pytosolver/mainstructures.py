@@ -244,10 +244,7 @@ class Variable:
     @property
     def default_name(self):
         if self._default_name is None:
-            raise Exception(
-                "The default name of this variable was not set. "
-                "Add this variable to the problem and run `problem.update()`"
-            )
+            raise Exception("The default name of this variable was not set.")
         return self._default_name
 
     def __hash__(self):
