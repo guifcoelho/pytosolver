@@ -19,7 +19,13 @@ class AbstractSolverApi(ABC):
 
     @property
     @abstractmethod
-    def show_log(self):
+    def should_show_log(self):
+        "Shows whether solver is logging or not."
+        ...
+
+    @abstractmethod
+    def set_log(self, flag: bool):
+        "Set solver logging on and of."
         ...
 
     @abstractmethod
