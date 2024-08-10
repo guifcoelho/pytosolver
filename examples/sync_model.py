@@ -1,8 +1,9 @@
 from minimal import get_problem
+from examples.parse_solver import get_solver_api
 
 
 def main():
-    prob, x1, x2, *_ = get_problem()
+    prob, x1, x2, *_ = get_problem(get_solver_api())
     prob.solve()
     x1_val, x2_val = x1.value, x2.value
 

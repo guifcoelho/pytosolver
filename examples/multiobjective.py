@@ -8,14 +8,11 @@
 # 3. To fully utilize the available wiring department hours
 # 4. To avoid overtime in the assembly department
 
-from typing import Optional
-
 import pytosolver as opt
 from pytosolver.solvers.abstractsolverapi import AbstractSolverApi
-from parse_solver import get_solver_api
 
 
-def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
+def get_problem(solver_api: type[AbstractSolverApi]):
 
 	# Decision variables for the number of products to make of each type
 	produceA = opt.Variable(name="produceA", vartype=opt.VarType.INT, lowerbound=0)
@@ -31,7 +28,7 @@ def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
 	deficit_profit = opt.Variable(name="deficit_profit", lowerbound=0)
 	deficit_productB = opt.Variable(name="deficit_productB", lowerbound=0)
 
-	vars = [
+	variables = [
 		produceA,
 		produceB,
 		surplus_wiring,
@@ -63,8 +60,8 @@ def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
 	]
 
 	prob = (
-		opt.Problem(name="multiobjective", solver_api=(solver_api or get_solver_api()))
-		.add_vars(*vars)
+		opt.Problem(name="multiobjective", solver_api=solver_api)
+		.add_vars(*variables)
 		.add_constrs(*constraints)
 		.add_objectives(
 			deficit_profit,
@@ -74,29 +71,27 @@ def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
 		)
 	)
 
-	print("Initial model:")
-	print(prob)
-	print()
-
-	return prob, *vars
+	return prob, variables, constraints
 
 def main():
-	(
-		prob,
-		produceA,
-		produceB,
-		surplus_wiring,
-		deficit_wiring,
-		surplus_assembly,
-		deficit_assembly,
-		deficit_profit,
-		deficit_productB
-	) = get_problem()
+	from parse_solver import get_solver_api
+
+	prob, variables, constraints = get_problem(get_solver_api())
+
+	(produceA,
+	 produceB,
+	 surplus_wiring,
+	 deficit_wiring,
+	 surplus_assembly,
+	 deficit_assembly,
+	 deficit_profit,
+	 deficit_productB) = variables
+
+	print(f"Initial model:\n{prob}\n")
+
 	prob.solve()
 
-	print("\nFinal complete model:")
-	print(prob)
-	print()
+	print(f"\nFinal complete model:\n{prob}\n")
 
 	if prob.solve_status in [opt.SolveStatus.FEASIBLE, opt.SolveStatus.OPTIMUM]:
 		print('\nProduction plan:')

@@ -4,7 +4,7 @@ from minimal import get_problem
 
 
 def main():
-    prob, x1, x2, *_ = get_problem()
+    prob, x1, x2, *_ = get_problem(get_solver_api())
     prob.solve().to_mps('load_model.mps')
     x1_val, x2_val = x1.value, x2.value
 

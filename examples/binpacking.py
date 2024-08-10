@@ -5,15 +5,13 @@ Binpacking example taken from `https://github.com/ERGO-Code/HiGHS/blob/master/ex
 from collections import defaultdict
 from operator import itemgetter
 import random
-from typing import Optional
 
 import pytosolver as opt
 from pytosolver.solvers.abstractsolverapi import AbstractSolverApi
-from parse_solver import get_solver_api
 
 
-random.seed(100)
 SEED = 100
+random.seed(SEED)
 
 NumberItems = 100
 ItemWeights = [round(random.uniform(1, 10), 1) for _ in range(NumberItems)]
@@ -30,11 +28,11 @@ def solveGreedyModel():
 
     return list(solution.values())
 
-def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
+def get_problem(solver_api: type[AbstractSolverApi]):
     greedy_bins = solveGreedyModel()
     B = len(greedy_bins)
 
-    prob = opt.Problem(name='BinPacking', solver_api=(solver_api or get_solver_api()))
+    prob = opt.Problem(name='BinPacking', solver_api=solver_api)
 
     x = {
         (i,j): opt.Variable(f"x({i},{j})", vartype=opt.VarType.BIN)
@@ -58,11 +56,12 @@ def get_problem(solver_api: Optional[type[AbstractSolverApi]] = None):
     return prob, x, y
 
 def main():
+    from parse_solver import get_solver_api
 
     greedy_bins = solveGreedyModel()
     B = len(greedy_bins)
 
-    prob, x, y = get_problem()
+    prob, x, y = get_problem(get_solver_api())
 
     # Hot starting variables
     for j, var_y in y.items():
