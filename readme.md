@@ -17,13 +17,13 @@ pip install ./pytosolver
 
 Each specific solver package must also be installed. The current supported solvers are:
 
-- HiGHS (the default solver, already comes with PyToSolver):
+- [HiGHS](https://github.com/ERGO-Code/HiGHS) (the default solver, already comes with PyToSolver):
 
 ```
 pip install highspy==1.7.2
 ```
 
-- Xpress:
+- [Xpress](https://pypi.org/project/xpress/):
 
 ```
 pip install xpress
