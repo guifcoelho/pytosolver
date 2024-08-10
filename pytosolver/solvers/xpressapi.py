@@ -1,5 +1,6 @@
 from dataclasses import dataclass
 from typing import Any, Optional
+from contextlib import suppress
 
 import xpress as xp
 
@@ -13,16 +14,29 @@ from pytosolver.solvers.abstractsolverapi import AbstractSolverApi
 class XpressApi(AbstractSolverApi):
     solver_name = 'Xpress'
 
+    @staticmethod
+    def set_license(path: str):
+        xp.init(path)
+
     def __post_init__(self):
         self.init_model()
 
     @property
-    def show_log(self):
+    def should_show_log(self):
         return self.model.getControl('OUTPUTLOG') > 0
+
+    def set_log(self, flag: bool):
+        return self.model.setControl('OUTPUTLOG', 1 if flag else 0)
 
     def init_model(self) -> "XpressApi":
         self.model = xp.problem()
         return self
+
+    def get_num_columns(self) -> int:
+        return self.model.getAttrib('cols')
+
+    def get_num_rows(self) -> int:
+        return self.model.getAttrib('rows')
 
     def _to_xpvar(self, variable: Variable):
         lb = -xp.infinity if variable.lowerbound is None else variable.lowerbound
@@ -38,12 +52,17 @@ class XpressApi(AbstractSolverApi):
         return solver_var
 
     def add_var(self, variable: Variable) -> "XpressApi":
+        variable.set_column(self.get_num_columns())
         self.model.addVariable(self._to_xpvar(variable))
         return self
 
     def add_vars(self, variables: list[Variable]) -> "XpressApi":
         if not variables:
             return self
+
+        ncols = self.get_num_columns()
+        for idx, var in enumerate(variables):
+            var.set_column(ncols + idx)
 
         self.model.addVariable(*[self._to_xpvar(var) for var in variables])
         return self
@@ -96,6 +115,8 @@ class XpressApi(AbstractSolverApi):
         for var in constraint.expression.elements:
             if var.column is None:
                 raise Exception("All variables need to be added to the model prior to adding constraints.")
+
+        constraint.set_row(self.get_num_rows())
 
         xpvars, coefs = [], []
         if len(constraint.expression.elements) > 0:
@@ -150,7 +171,10 @@ class XpressApi(AbstractSolverApi):
 
     def fetch_solution(self) -> "XpressApi":
         self.solution = list(self.model.getSolution())
-        self.duals = list(self.model.getDual())
+
+        self.duals = None
+        with suppress(SystemError):
+            self.duals = list(self.model.getDual())
         return self
 
     def get_objective_value(self) -> float:
