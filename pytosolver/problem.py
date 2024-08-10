@@ -112,12 +112,13 @@ class Problem:
 
     def set_option(self, name: str, value) -> "Problem":
         "Sets the solver option"
-        self.solver.set_option(name, value)
+        self.options[name] = value
         return self
 
     def set_options(self, options: dict[str, Any]) -> "Problem":
         "Sets a some solver options"
-        self.solver.set_options(options)
+        for option, value in options.items():
+            self.options[option] = value
         return self
 
     def add_var(self, variable: Variable) -> "Problem":
@@ -299,7 +300,7 @@ class Problem:
 
         return self.solve_multiobjective(with_hotstart)
 
-    def solve_withtarget(self, update: bool = True, with_hotstart: bool = False) -> "Problem":
+    def solve_withtarget(self, with_hotstart: bool = False) -> "Problem":
         self._solve_preamble(with_hotstart)
 
         # Filter variables which have a target value.
@@ -374,8 +375,7 @@ class Problem:
         self._solve_preamble(with_hotstart)
         objective = self.objective_functions[0]
         self.set_solve_objective(objective)
-        options = objective.options if len(objective.options) > 0 else (self.options or dict())
-        self.solver.run(options)
+        self.solver.run(objective.options or self.options or dict())
         return self.fetch_solution()
 
     def solve_multiobjective(self, with_hotstart: bool = False) -> "Problem":
@@ -384,8 +384,12 @@ class Problem:
         objective value as a constraint to the next iteration.
         """
         self._solve_preamble(with_hotstart)
+
+        options = self.options or dict()
+        self.solver.set_options(options)
+
         for idx, objective in enumerate(self.objective_functions):
-            if self.solver.show_log:
+            if self.solver.should_show_log:
                 if idx > 0:
                     print()
                 obj_name = f"'{objective.name}' " if objective.name is not None else ""
@@ -396,8 +400,7 @@ class Problem:
 
             self.set_solve_objective(objective)
 
-            options = objective.options if len(objective.options) > 0 else (self.options or dict())
-            self.solver.run(options)
+            self.solver.run(objective.options or options)
             self.fetch_solve_status()
 
             if (
@@ -431,8 +434,10 @@ class Problem:
             self.solver.fetch_solution()
             for variable in self.variables:
                 variable.value = self.solver.get_solution(variable)
-            for constr in self.constraints:
-                constr.dual = self.solver.get_dual(constr)
+
+            if self.solver.duals is not None:
+                for constr in self.constraints:
+                    constr.dual = self.solver.get_dual(constr)
 
             assert isinstance(self.current_objective, ObjectiveFunction)
             self.current_objective.value = self.get_objectivefunction_value()
