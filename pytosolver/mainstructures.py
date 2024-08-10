@@ -11,6 +11,9 @@ class LinearExpression:
     elements: dict['Variable', float] = field(default_factory=dict, init=False)
     constant: float = field(default=0, init=False)
 
+    def __len__(self):
+        return len(self.elements)
+
     def get_sorted_vars(self):
         return sorted(list(self.elements.keys()), key=lambda el: el.get_name())
 
