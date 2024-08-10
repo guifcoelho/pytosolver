@@ -1,6 +1,6 @@
 from setuptools import setup
 
-VERSION = 'v0.2.0'
+VERSION = 'v0.1.0'
 
 readme_name = "readme.md"
 with open(readme_name) as fh:
