@@ -253,7 +253,7 @@ class Variable:
         return self._hash
 
     def get_name(self):
-        return self.name or self.default_name or f"__var{self.__hash__()}"
+        return self.name or self._default_name or f"__var{self.__hash__()}"
 
     def to_str(self):
         name = self.get_name()
